@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor.io - Real-time Multiplayer Game</title>
+    <meta name="description" content="A fun multiplayer game where you grow by eating food and other players!">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23ff6b6b'/></svg>">
+</head>
+<body>
+    <div id="loading-screen" class="screen active">
+        <div class="loading-content">
+            <h1 class="game-title">CURSOR.IO</h1>
+            <div class="loading-spinner"></div>
+            <p>Loading game...</p>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <div class="start-content">
+            <h1 class="game-title">CURSOR.IO</h1>
+            <p class="game-description">Eat, grow, survive!</p>
+            
+            <div class="start-form">
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20" autocomplete="off">
+                <button id="play-button" class="btn btn-primary">PLAY</button>
+            </div>
+            
+            <div class="game-info">
+                <div class="info-item">
+                    <strong>How to Play:</strong>
+                    <ul>
+                        <li>Move your mouse to control your cell</li>
+                        <li>Eat food (small dots) to grow</li>
+                        <li>Eat smaller players to become larger</li>
+                        <li>Press SPACE to split</li>
+                        <li>Press T to chat</li>
+                        <li>Avoid larger players!</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="stats-preview">
+                <div class="stat">
+                    <span class="stat-label">Players Online:</span>
+                    <span class="stat-value" id="online-count">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <!-- Game Canvas -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- HUD -->
+        <div class="hud">
+            <!-- Top HUD -->
+            <div class="hud-top">
+                <div class="score-display">
+                    <span class="score-label">Score:</span>
+                    <span class="score-value" id="player-score">0</span>
+                </div>
+                
+                <div class="game-stats">
+                    <span class="players-count">Players: <span id="players-online">0</span></span>
+                </div>
+                
+                <div class="fps-counter" id="fps-counter">FPS: 60</div>
+            </div>
+            
+            <!-- Leaderboard -->
+            <div class="leaderboard">
+                <h3>Leaderboard</h3>
+                <div id="leaderboard-list">
+                    <div class="leaderboard-item">
+                        <span class="rank">1.</span>
+                        <span class="name">-</span>
+                        <span class="score">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-message system">Welcome to Cursor.io!</div>
+                </div>
+                <div class="chat-input-container" id="chat-input-container" style="display: none;">
+                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
+                </div>
+            </div>
+            
+            <!-- Controls Help -->
+            <div class="controls-help">
+                <div class="control-item">
+                    <span class="control-key">SPACE</span>
+                    <span class="control-desc">Split</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">T</span>
+                    <span class="control-desc">Chat</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Death Screen Overlay -->
+        <div id="death-screen" class="overlay">
+            <div class="death-content">
+                <h2>You Died!</h2>
+                <div class="death-stats">
+                    <div class="stat">
+                        <span class="stat-label">Final Score:</span>
+                        <span class="stat-value" id="final-score">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Kills:</span>
+                        <span class="stat-value" id="final-kills">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Time Alive:</span>
+                        <span class="stat-value" id="time-alive">0s</span>
+                    </div>
+                </div>
+                <button id="respawn-button" class="btn btn-primary">PLAY AGAIN</button>
+                <button id="main-menu-button" class="btn btn-secondary">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Lost Screen -->
+    <div id="connection-lost" class="screen overlay">
+        <div class="connection-content">
+            <h2>Connection Lost</h2>
+            <p>Lost connection to the server. Please check your internet connection.</p>
+            <button id="reconnect-button" class="btn btn-primary">RECONNECT</button>
+            <div class="connection-status" id="connection-status">Disconnected</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 

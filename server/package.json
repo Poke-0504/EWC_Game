@@ -1,0 +1,40 @@
+{
+  "name": "cursor-io-server",
+  "version": "2.0.0",
+  "description": "High-performance multiplayer game server supporting 400+ concurrent players",
+  "main": "cluster-server.js",
+  "scripts": {
+    "start": "node app.js",
+    "cluster": "node cluster-server.js",
+    "dev": "nodemon app.js",
+    "cluster-dev": "nodemon cluster-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "benchmark": "node benchmark.js"
+  },
+  "keywords": ["game", "multiplayer", "realtime", "socketio", "agar", "cluster", "redis"],
+  "author": "Cursor.io Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "@socket.io/redis-adapter": "^8.2.1",
+    "ioredis": "^5.3.2",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.7.0",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0",
+    "sanitize-html": "^2.11.0",
+    "cluster": "^0.7.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "performance": {
+    "maxConcurrentPlayers": 400,
+    "recommendedRAM": "2GB",
+    "recommendedCPU": "4+ cores"
+  }
+} 

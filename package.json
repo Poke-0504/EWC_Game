@@ -1,0 +1,29 @@
+{
+  "name": "cursor-io",
+  "version": "1.0.0",
+  "description": "A real-time multiplayer game similar to Agar.io built with Node.js and Socket.io",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "nodemon server/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["game", "multiplayer", "realtime", "socketio", "agar"],
+  "author": "Cursor.io Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.7.0",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0",
+    "sanitize-html": "^2.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 
