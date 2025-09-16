@@ -62,15 +62,29 @@ class GameLogic {
       const existingPlayer = this.players.get(playerData.id);
       
       if (existingPlayer) {
-        // Store previous position for interpolation
+        // Handle growth notifications
+        if (playerData.growthNotifications && playerData.growthNotifications.length > 0) {
+          playerData.growthNotifications.forEach(notification => {
+            this.app.renderer.addGrowthNotification(notification.milestone, notification.bonusMass);
+            
+            // Create growth particles at player location
+            const center = this.getPlayerCenter(playerData);
+            this.app.renderer.createGrowthParticles(center.x, center.y);
+          });
+        }
+        
+        // Store previous position for interpolation (use center of mass for multi-cell players)
         if (this.interpolation) {
+          const oldCenter = this.getPlayerCenter(existingPlayer);
+          const newCenter = this.getPlayerCenter(playerData);
+          
           this.interpolationData.set(playerData.id, {
-            fromX: existingPlayer.x,
-            fromY: existingPlayer.y,
-            toX: playerData.x,
-            toY: playerData.y,
-            fromSize: existingPlayer.size,
-            toSize: playerData.size,
+            fromX: oldCenter.x,
+            fromY: oldCenter.y,
+            toX: newCenter.x,
+            toY: newCenter.y,
+            fromSize: existingPlayer.size || 20,
+            toSize: playerData.size || 20,
             startTime: timestamp
           });
         }
@@ -110,23 +124,28 @@ class GameLogic {
   }
 
   createPlayer(playerData) {
+    const center = this.getPlayerCenter(playerData);
+    
     return {
       id: playerData.id,
       name: playerData.name,
-      x: playerData.x,
-      y: playerData.y,
+      x: center.x,
+      y: center.y,
       size: playerData.size,
       color: playerData.color,
       score: playerData.score || 0,
       alive: playerData.alive !== false,
       invulnerable: playerData.invulnerable || false,
+      isVIP: playerData.isVIP || false,
+      cells: playerData.cells || [],
+      totalMass: playerData.totalMass || 400,
       type: 'player',
       // Visual properties
-      targetX: playerData.x,
-      targetY: playerData.y,
+      targetX: center.x,
+      targetY: center.y,
       targetSize: playerData.size,
-      renderX: playerData.x,
-      renderY: playerData.y,
+      renderX: center.x,
+      renderY: center.y,
       renderSize: playerData.size
     };
   }
@@ -145,6 +164,14 @@ class GameLogic {
       // Update UI with player score
       this.app.ui.updatePlayerScore(myPlayer.score || 0);
       
+      // Create VIP particles if player is VIP
+      if (myPlayer.isVIP) {
+        const center = this.getPlayerCenter(myPlayer);
+        if (Math.random() < 0.3) { // 30% chance each frame
+          this.app.renderer.createVIPParticles(center.x, center.y);
+        }
+      }
+      
       // Check if player died
       if (!myPlayer.alive) {
         this.handlePlayerDeath(myPlayer);
@@ -158,17 +185,21 @@ class GameLogic {
     
     if (!player || !canvas) return;
     
-    // Calculate zoom based on player size (bigger = more zoomed out)
+    // Get player center and largest cell size for multi-cell players
+    const center = this.getPlayerCenter(player);
+    const maxSize = this.getPlayerMaxSize(player);
+    
+    // Calculate zoom based on largest cell size (bigger = more zoomed out)
     const baseZoom = 1.0;
     const sizeZoomFactor = 0.002;
-    const targetZoom = Math.max(0.5, Math.min(2.0, baseZoom - (player.size - 20) * sizeZoomFactor));
+    const targetZoom = Math.max(0.4, Math.min(1.5, baseZoom - (maxSize - 20) * sizeZoomFactor));
     
     // Smooth zoom transition
-    gameState.camera.zoom += (targetZoom - gameState.camera.zoom) * 0.1;
+    gameState.camera.zoom += (targetZoom - gameState.camera.zoom) * 0.05;
     
-    // Center camera on player
-    const targetX = player.renderX - (canvas.width / 2) / gameState.camera.zoom;
-    const targetY = player.renderY - (canvas.height / 2) / gameState.camera.zoom;
+    // Center camera on player center
+    const targetX = center.x - (canvas.width / 2) / gameState.camera.zoom;
+    const targetY = center.y - (canvas.height / 2) / gameState.camera.zoom;
     
     // Smooth camera movement
     gameState.camera.x += (targetX - gameState.camera.x) * 0.1;
@@ -360,6 +391,35 @@ class GameLogic {
     console.log('🔄 Game reset');
   }
 
+  // Utility methods for multi-cell players
+  getPlayerCenter(player) {
+    if (player.cells && player.cells.length > 0) {
+      let centerX = 0, centerY = 0, totalMass = 0;
+      
+      player.cells.forEach(cell => {
+        const mass = cell.mass || (cell.size * cell.size) || 400;
+        centerX += cell.x * mass;
+        centerY += cell.y * mass;
+        totalMass += mass;
+      });
+      
+      return {
+        x: centerX / totalMass,
+        y: centerY / totalMass
+      };
+    }
+    
+    return { x: player.x || 0, y: player.y || 0 };
+  }
+  
+  getPlayerMaxSize(player) {
+    if (player.cells && player.cells.length > 0) {
+      return Math.max(...player.cells.map(cell => cell.size || 20));
+    }
+    
+    return player.size || 20;
+  }
+
   // Debug methods
   getDebugInfo() {
     return {
@@ -367,7 +427,8 @@ class GameLogic {
       food: this.food.size,
       interpolationData: this.interpolationData.size,
       paused: this.paused,
-      myPlayer: this.myPlayer ? this.myPlayer.id : null
+      myPlayer: this.myPlayer ? this.myPlayer.id : null,
+      myCells: this.myPlayer && this.myPlayer.cells ? this.myPlayer.cells.length : 0
     };
   }
 } 

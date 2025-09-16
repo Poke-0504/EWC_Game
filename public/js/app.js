@@ -112,6 +112,7 @@ class CursorIOApp {
       this.gameState.playing = true;
       this.gameState.player = { id: data.playerId };
       this.gameState.world = data.world;
+      this.game.startGame();
       this.ui.showGameScreen();
     });
 
@@ -168,6 +169,12 @@ class CursorIOApp {
 
   splitPlayer() {
     if (!this.gameState.playing || !this.socket) return;
+    
+    // Create visual feedback immediately for better responsiveness
+    if (this.game.myPlayer && this.game.myPlayer.cells) {
+      const center = this.game.getPlayerCenter(this.game.myPlayer);
+      this.renderer.createSplitParticles(center.x, center.y);
+    }
     
     this.socket.emit('split');
   }

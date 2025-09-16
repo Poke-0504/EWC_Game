@@ -558,4 +558,30 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Growth notification animation */
+@keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* VIP player glow effects */
+@keyframes vipGlow {
+    0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+    100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+}
+
+/* Split effect animations */
+@keyframes splitEffect {
+    0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.8); }
+    100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); }
+}
+
+@keyframes mergeReady {
+    0% { box-shadow: 0 0 5px rgba(0, 255, 0, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(0, 255, 0, 0.9); }
+    100% { box-shadow: 0 0 5px rgba(0, 255, 0, 0.6); }
 } 

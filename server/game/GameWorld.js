@@ -35,8 +35,10 @@ class GameWorld {
   removePlayer(playerId) {
     const player = this.players.get(playerId);
     if (player) {
-      // Create food explosion when player dies
-      this.createFoodExplosion(player.x, player.y, player.mass);
+      // Create food explosion when player dies - spread across all cells
+      const totalMass = player.getTotalMass();
+      const center = player.getCenterPosition();
+      this.createFoodExplosion(center.x, center.y, totalMass);
       this.players.delete(playerId);
       console.log(`➖ Player removed: ${player.name}`);
     }
@@ -53,16 +55,21 @@ class GameWorld {
       
       let safe = true;
       for (const [id, player] of this.players) {
-        if (!player.alive) continue;
+        if (!player.alive || player.cells.length === 0) continue;
         
-        const dx = x - player.x;
-        const dy = y - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < minDistance) {
-          safe = false;
-          break;
+        // Check distance from all player cells
+        for (const cell of player.cells) {
+          const dx = x - cell.x;
+          const dy = y - cell.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < minDistance) {
+            safe = false;
+            break;
+          }
         }
+        
+        if (!safe) break;
       }
       
       if (safe) {
@@ -80,10 +87,11 @@ class GameWorld {
   // Update player movement
   updatePlayerMovement(playerId, targetX, targetY) {
     const player = this.players.get(playerId);
-    if (player && player.alive) {
-      // Convert relative movement to absolute world coordinates
-      const worldX = player.x + targetX * 200; // Scale factor for responsiveness
-      const worldY = player.y + targetY * 200;
+    if (player && player.alive && player.cells.length > 0) {
+      // Convert relative movement to world coordinates based on player center
+      const center = player.getCenterPosition();
+      const worldX = center.x + targetX * 300; // Increased scale for better responsiveness
+      const worldY = center.y + targetY * 300;
       
       player.updateMovement(worldX, worldY);
     }
@@ -94,11 +102,9 @@ class GameWorld {
     const player = this.players.get(playerId);
     if (!player) return;
 
-    const splitData = player.split();
-    if (splitData) {
-      // For now, we just do the split on the existing player
-      // In a more complex system, we'd create multiple cells per player
-      console.log(`💥 Player split: ${player.name}`);
+    const splitSuccessful = player.split();
+    if (splitSuccessful) {
+      console.log(`💥 Player split: ${player.name} (now has ${player.cells.length} cells)`);
     }
   }
 
@@ -125,35 +131,50 @@ class GameWorld {
 
   // Check all collisions in the game
   checkCollisions() {
-    const playerArray = Array.from(this.players.values()).filter(p => p.alive);
+    const playerArray = Array.from(this.players.values()).filter(p => p.alive && p.cells.length > 0);
     
-    // Player vs Food collisions
+    // Player vs Food collisions - check each cell against food
     for (const player of playerArray) {
-      for (const [foodId, food] of this.food) {
-        if (food.eaten) continue;
-        
-        if (food.collidesWith(player)) {
-          player.eatFood(food);
-          food.eat();
-          this.food.delete(foodId);
+      for (const cell of player.cells) {
+        for (const [foodId, food] of this.food) {
+          if (food.eaten) continue;
+          
+          const dx = cell.x - food.x;
+          const dy = cell.y - food.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < (cell.size + food.size) / 2) {
+            if (player.eatFood(food)) {
+              food.eat();
+              this.food.delete(foodId);
+              break; // Food eaten, move to next food
+            }
+          }
         }
       }
     }
 
-    // Player vs Player collisions
+    // Player vs Player collisions - check each cell against each cell
     for (let i = 0; i < playerArray.length; i++) {
       for (let j = i + 1; j < playerArray.length; j++) {
         const player1 = playerArray[i];
         const player2 = playerArray[j];
         
+        // Skip if either player is invulnerable
+        if (player1.invulnerable || player2.invulnerable) continue;
+        
         if (player1.collidesWith(player2)) {
           // Determine who eats who
           if (player1.canEat(player2)) {
+            const center2 = player2.getCenterPosition();
+            const totalMass2 = player2.getTotalMass();
             player1.eat(player2);
-            this.createFoodExplosion(player2.x, player2.y, player2.mass);
+            this.createFoodExplosion(center2.x, center2.y, totalMass2);
           } else if (player2.canEat(player1)) {
+            const center1 = player1.getCenterPosition();
+            const totalMass1 = player1.getTotalMass();
             player2.eat(player1);
-            this.createFoodExplosion(player1.x, player1.y, player1.mass);
+            this.createFoodExplosion(center1.x, center1.y, totalMass1);
           }
         }
       }
@@ -289,17 +310,19 @@ class GameWorld {
   // Validate player position (anti-cheat)
   validatePlayerPosition(playerId, x, y) {
     const player = this.players.get(playerId);
-    if (!player) return false;
+    if (!player || player.cells.length === 0) return false;
 
     // Check if position is within world bounds
     if (x < 0 || x > this.width || y < 0 || y > this.height) {
       return false;
     }
 
-    // Check if movement is physically possible
-    const dx = Math.abs(x - player.x);
-    const dy = Math.abs(y - player.y);
-    const maxMovement = player.getSpeed() * 2; // Allow some tolerance
+    // Check if movement is physically possible based on player center
+    const center = player.getCenterPosition();
+    const dx = Math.abs(x - center.x);
+    const dy = Math.abs(y - center.y);
+    const largestCell = player.getLargestCell();
+    const maxMovement = largestCell ? (Math.max(1, 5 - (largestCell.size - 20) / 30) * 2) : 10; // Allow some tolerance
 
     if (dx > maxMovement || dy > maxMovement) {
       console.warn(`⚠️  Suspicious movement detected for player ${player.name}`);
