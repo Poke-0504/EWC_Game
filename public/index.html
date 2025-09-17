@@ -3,173 +3,1028 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cursor.io - Real-time Multiplayer Game</title>
-    <meta name="description" content="A fun multiplayer game where you grow by eating food and other players!">
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23ff6b6b'/></svg>">
+    <title>Cursor.io - Single Player</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%); color: #eee; overflow: hidden; user-select: none; }
+        #gameCanvas { display: block; cursor: crosshair; background: #1a1a2e; }
+        .hud { position: absolute; top: 20px; left: 20px; color: white; font-size: 18px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; border: 2px solid #ff6b6b; }
+        .instructions { position: absolute; bottom: 20px; left: 20px; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; border: 2px solid #4ecdc4; }
+        .leaderboard { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); border: 2px solid #333; border-radius: 10px; padding: 15px; min-width: 200px; max-width: 400px; color: white; word-wrap: break-word; overflow-wrap: break-word; }
+        .start-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); z-index: 1000; }
+        .start-content { text-align: center; color: white; }
+        .start-content h1 { font-size: 3rem; margin-bottom: 1rem; color: #ff6b6b; }
+        .start-content input { padding: 10px; font-size: 16px; margin: 10px; border: none; border-radius: 5px; background: rgba(255,255,255,0.1); color: white; text-align: center; min-width: 200px; max-width: 600px; width: auto; }
+        .start-content button { padding: 10px 20px; font-size: 16px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+        .start-content button:hover { background: #ff5252; }
+        .hidden { display: none !important; }
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } 50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        
+        /* Chatroom Styles */
+        .chatroom {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #4ecdc4;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        .chat-header {
+            background: rgba(78, 205, 196, 0.2);
+            padding: 8px 12px;
+            border-bottom: 1px solid #4ecdc4;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header h4 {
+            margin: 0;
+            color: #4ecdc4;
+            font-size: 14px;
+        }
+        
+        .toggle-btn {
+            background: #4ecdc4;
+            color: black;
+            border: none;
+            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .toggle-btn:hover {
+            background: #45b7d1;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 8px;
+            overflow-y: auto;
+            max-height: 120px;
+            font-size: 12px;
+        }
+        
+        .chat-message {
+            margin-bottom: 4px;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+        
+        .chat-message.system {
+            color: #4ecdc4;
+            font-style: italic;
+        }
+        
+        .chat-message.player {
+            color: #ff6b6b;
+        }
+        
+        .chat-message.ai {
+            color: #feca57;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            padding: 8px;
+            border-top: 1px solid #4ecdc4;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .chat-input-container input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #4ecdc4;
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: white;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        
+        .chat-input-container input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+        
+        .send-btn {
+            background: #4ecdc4;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .send-btn:hover {
+            background: #45b7d1;
+        }
+        
+        .chatroom.collapsed {
+            height: 30px;
+        }
+        
+        .chatroom.collapsed .chat-messages,
+        .chatroom.collapsed .chat-input-container {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <div id="loading-screen" class="screen active">
-        <div class="loading-content">
-            <h1 class="game-title">CURSOR.IO</h1>
-            <div class="loading-spinner"></div>
-            <p>Loading game...</p>
-        </div>
-    </div>
-
-    <!-- Start Screen -->
-    <div id="start-screen" class="screen">
+    <div id="startScreen" class="start-screen">
         <div class="start-content">
-            <h1 class="game-title">CURSOR.IO</h1>
-            <p class="game-description">Eat, grow, survive!</p>
-            
-            <div class="start-form">
-                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20" autocomplete="off">
-                <button id="play-button" class="btn btn-primary">PLAY</button>
-            </div>
-            
-            <div class="game-info">
-                <div class="info-item">
-                    <strong>How to Play:</strong>
-                    <ul>
-                        <li>Move your mouse to control your cell</li>
-                        <li>Eat food (small dots) to grow</li>
-                        <li>Eat smaller players to become larger</li>
-                        <li>Press SPACE to split</li>
-                        <li>Press T to chat</li>
-                        <li>Avoid larger players!</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="stats-preview">
-                <div class="stat">
-                    <span class="stat-label">Players Online:</span>
-                    <span class="stat-value" id="online-count">-</span>
-                </div>
-            </div>
+            <h1>CURSOR.IO</h1>
+            <p>Single Player Mode</p><br>
+            <input type="text" id="playerName" placeholder="Enter your name (up to 128 characters)" maxlength="128"><br>
+            <button id="startButton">START GAME</button>
         </div>
     </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="hud">
+        <div>Score: <span id="score">0</span></div>
+        <div>Mass: <span id="mass">400</span></div>
+        <div>Balls: <span id="ballCount">1</span>/16</div>
+    </div>
+    
+    <div class="instructions">
+        <div><strong>Controls:</strong></div>
+        <div>Mouse: Move</div>
+        <div>Space: Split (if mass > 64)</div>
+        <div>R: Restart</div>
+    </div>
+    
+    <div class="chatroom">
+        <div class="chat-header">
+            <h4>💬 Chat</h4>
+            <button id="toggleChat" class="toggle-btn">−</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message system">Welcome to Cursor.io! 🎮</div>
+        </div>
+        <div class="chat-input-container">
+            <input type="text" id="chatInput" placeholder="Type a message..." maxlength="100">
+            <button id="sendMessage" class="send-btn">Send</button>
+        </div>
+    </div>
+    
+    <div class="leaderboard">
+        <h3>AI Players</h3>
+        <div id="leaderboardList">Loading players...</div>
+    </div>
+    
+    <div id="growthNotification" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 215, 0, 0.9); color: black; padding: 20px; border-radius: 10px; font-size: 24px; font-weight: bold; display: none; z-index: 2000; animation: pulse 0.5s ease-in-out;">🎉 GROWTH MILESTONE! 🎉</div>
 
-    <!-- Game Screen -->
-    <div id="game-screen" class="screen">
-        <!-- Game Canvas -->
-        <canvas id="game-canvas"></canvas>
+    <script>
+        console.log('🎮 Game script loading...');
         
-        <!-- HUD -->
-        <div class="hud">
-            <!-- Top HUD -->
-            <div class="hud-top">
-                <div class="score-display">
-                    <span class="score-label">Score:</span>
-                    <span class="score-value" id="player-score">0</span>
-                </div>
-                
-                <div class="game-stats">
-                    <span class="players-count">Players: <span id="players-online">0</span></span>
-                </div>
-                
-                <div class="fps-counter" id="fps-counter">FPS: 60</div>
-            </div>
-            
-            <!-- Leaderboard -->
-            <div class="leaderboard">
-                <h3>Leaderboard</h3>
-                <div id="leaderboard-list">
-                    <div class="leaderboard-item">
-                        <span class="rank">1.</span>
-                        <span class="name">-</span>
-                        <span class="score">0</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Chat -->
-            <div class="chat-container">
-                <div class="chat-messages" id="chat-messages">
-                    <div class="chat-message system">Welcome to Cursor.io!</div>
-                </div>
-                <div class="chat-input-container" id="chat-input-container" style="display: none;">
-                    <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
-                </div>
-            </div>
-            
-            <!-- Controls Help -->
-            <div class="controls-help">
-                <div class="control-item">
-                    <span class="control-key">SPACE</span>
-                    <span class="control-desc">Split</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">T</span>
-                    <span class="control-desc">Chat</span>
-                </div>
-            </div>
-        </div>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let gameRunning = false;
+        let animationId;
         
-        <!-- Death Screen Overlay -->
-        <div id="death-screen" class="overlay">
-            <div class="death-content">
-                <h2>You Died!</h2>
-                <div class="death-stats">
-                    <div class="stat">
-                        <span class="stat-label">Final Score:</span>
-                        <span class="stat-value" id="final-score">0</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Kills:</span>
-                        <span class="stat-value" id="final-kills">0</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Time Alive:</span>
-                        <span class="stat-value" id="time-alive">0s</span>
-                    </div>
-                </div>
-                <button id="respawn-button" class="btn btn-primary">PLAY AGAIN</button>
-                <button id="main-menu-button" class="btn btn-secondary">MAIN MENU</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Connection Lost Screen -->
-    <div id="connection-lost" class="screen overlay">
-        <div class="connection-content">
-            <h2>Connection Lost</h2>
-            <p>Lost connection to the server. Please check your internet connection.</p>
-            <button id="reconnect-button" class="btn btn-primary">RECONNECT</button>
-            <div class="connection-status" id="connection-status">Disconnected</div>
-        </div>
-    </div>
-
-    <!-- Growth Notification -->
-    <div id="growthNotification" style="
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 215, 0, 0.9);
-        color: black;
-        padding: 20px;
-        border-radius: 10px;
-        font-size: 24px;
-        font-weight: bold;
-        display: none;
-        z-index: 2000;
-        animation: pulse 0.5s ease-in-out;
-        font-family: 'Orbitron', monospace;
-        border: 3px solid #FFD700;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-    ">
-        🎉 GROWTH MILESTONE! 🎉
-    </div>
-
-    <!-- Scripts -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/renderer.js"></script>
-    <script src="js/input.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+        // Easter egg images
+        let fermiImage = null;
+        
+        function loadEasterEggImages() {
+            fermiImage = new Image();
+            fermiImage.onload = function() {
+                console.log('🖼️ Fermi image loaded successfully!');
+            };
+            fermiImage.onerror = function() {
+                console.log('⚠️ Could not load fermi.jpg - using default golden theme');
+                fermiImage = null;
+            };
+            fermiImage.src = 'fermi.jpg';
+        }
+        loadEasterEggImages();
+        
+        // Resize canvas to full screen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            console.log('📐 Canvas resized:', canvas.width, 'x', canvas.height);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        // Game world
+        const WORLD_WIDTH = 3000;
+        const WORLD_HEIGHT = 3000;
+        
+        // Player balls (array to handle multiple balls after splitting)
+        let playerBalls = [{
+            id: 0,
+            x: WORLD_WIDTH / 2,
+            y: WORLD_HEIGHT / 2,
+            size: 20,
+            mass: 400,
+            color: '#ff6b6b',
+            name: 'Player',
+            vx: 0,
+            vy: 0,
+            splitTime: 0,
+            canMerge: true
+        }];
+        
+        let playerStats = {
+            score: 0,
+            lastGrowthMilestone: 0,
+            lastSplitTime: 0,
+            splitCooldown: 1000
+        };
+        
+        // Camera
+        let camera = { x: 0, y: 0, zoom: 1 };
+        
+        // Mouse position
+        let mouse = { x: 0, y: 0 };
+        
+        // Game entities
+        let food = [];
+        let aiPlayers = [];
+        
+        // Colors for entities
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', 
+            '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd',
+            '#00d2d3', '#ff9f43', '#10ac84', '#ee5a6f'
+        ];
+        
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        // Initialize food
+        function createFood() {
+            console.log('🍎 Creating food...');
+            food = [];
+            for (let i = 0; i < 500; i++) {
+                food.push({
+                    x: Math.random() * WORLD_WIDTH,
+                    y: Math.random() * WORLD_HEIGHT,
+                    size: 4 + Math.random() * 4,
+                    color: getRandomColor()
+                });
+            }
+            console.log('✅ Created', food.length, 'food items');
+        }
+        
+        // AI Player names
+        const aiNames = [
+            'Bot_Alpha', 'AI_Master', 'Cyber_Cell', 'NeuralNet', 'DeepBlue',
+            'Matrix_01', 'Algorithm', 'Binary_Bot', 'Logic_Gate', 'Data_Cell'
+        ];
+        
+        // Create AI players
+        function createAIPlayers() {
+            console.log('🤖 Creating AI players...');
+            aiPlayers = [];
+            for (let i = 0; i < 8; i++) {
+                aiPlayers.push({
+                    x: Math.random() * WORLD_WIDTH,
+                    y: Math.random() * WORLD_HEIGHT,
+                    size: 15 + Math.random() * 30,
+                    mass: 300 + Math.random() * 800,
+                    color: getRandomColor(),
+                    name: aiNames[i],
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    targetX: Math.random() * WORLD_WIDTH,
+                    targetY: Math.random() * WORLD_HEIGHT,
+                    changeTargetTimer: 0,
+                    score: Math.floor(300 + Math.random() * 800)
+                });
+            }
+            console.log('✅ Created', aiPlayers.length, 'AI players');
+        }
+        
+        // Update camera
+        function updateCamera() {
+            if (playerBalls.length === 0) return;
+            
+            let centerX = 0, centerY = 0, totalMass = 0, maxSize = 0;
+            
+            playerBalls.forEach(ball => {
+                centerX += ball.x * ball.mass;
+                centerY += ball.y * ball.mass;
+                totalMass += ball.mass;
+                maxSize = Math.max(maxSize, ball.size);
+            });
+            
+            centerX /= totalMass;
+            centerY /= totalMass;
+            
+            const targetZoom = Math.max(0.4, Math.min(1.5, 1 - (maxSize - 20) / 300));
+            camera.zoom += (targetZoom - camera.zoom) * 0.05;
+            
+            camera.x = centerX - canvas.width / (2 * camera.zoom);
+            camera.y = centerY - canvas.height / (2 * camera.zoom);
+            
+            camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width / camera.zoom, camera.x));
+            camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height / camera.zoom, camera.y));
+        }
+        
+        // Update player movement
+        function updatePlayer() {
+            const currentTime = Date.now();
+            
+            // Calculate total mass and score
+            const totalMass = playerBalls.reduce((sum, ball) => sum + ball.mass, 0);
+            playerStats.score = Math.floor(totalMass / 4);
+            
+            // Update each player ball
+            playerBalls.forEach(ball => {
+                const dx = mouse.x / camera.zoom + camera.x - ball.x;
+                const dy = mouse.y / camera.zoom + camera.y - ball.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 5) {
+                    const speed = Math.max(1, 5 - (ball.size - 20) / 30);
+                    ball.vx += (dx / distance) * speed * 0.1;
+                    ball.vy += (dy / distance) * speed * 0.1;
+                }
+                
+                ball.vx *= 0.92;
+                ball.vy *= 0.92;
+                
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                
+                // Boundary checking
+                const radius = ball.size / 2;
+                ball.x = Math.max(radius, Math.min(WORLD_WIDTH - radius, ball.x));
+                ball.y = Math.max(radius, Math.min(WORLD_HEIGHT - radius, ball.y));
+                
+                // Update size based on mass
+                ball.size = Math.sqrt(ball.mass);
+                
+                // Update merge availability
+                if (currentTime - ball.splitTime > 10000) {
+                    ball.canMerge = true;
+                }
+            });
+            
+            // Growth mechanism (silent bonus)
+            const currentMilestone = Math.floor(playerStats.score / 100);
+            if (currentMilestone > playerStats.lastGrowthMilestone) {
+                const bonusGrowths = currentMilestone - playerStats.lastGrowthMilestone;
+                const bonusMass = bonusGrowths * 50;
+                
+                const largestBall = playerBalls.reduce((largest, ball) => 
+                    ball.mass > largest.mass ? ball : largest
+                );
+                largestBall.mass += bonusMass;
+                playerStats.lastGrowthMilestone = currentMilestone;
+            }
+        }
+        
+        // Split function
+        function splitPlayer() {
+            const currentTime = Date.now();
+            
+            if (currentTime - playerStats.lastSplitTime < playerStats.splitCooldown) {
+                return;
+            }
+            
+            // Check split limit (max 16 balls)
+            if (playerBalls.length >= 16) {
+                // Show split limit notification
+                const notification = document.getElementById('growthNotification');
+                notification.style.display = 'block';
+                notification.style.background = 'rgba(255, 165, 0, 0.9)';
+                notification.innerHTML = `⚠️ SPLIT LIMIT REACHED! ⚠️<br><small>Maximum 16 balls allowed</small>`;
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                    notification.style.background = 'rgba(255, 215, 0, 0.9)';
+                }, 2000);
+                return;
+            }
+            
+            const ballsToSplit = playerBalls.filter(ball => ball.mass > 64);
+            if (ballsToSplit.length === 0) return;
+            
+            ballsToSplit.forEach(ball => {
+                const newMass = ball.mass / 2;
+                const newSize = Math.sqrt(newMass);
+                const angle = Math.atan2(mouse.y / camera.zoom + camera.y - ball.y, 
+                                       mouse.x / camera.zoom + camera.x - ball.x);
+                
+                const separationDistance = newSize * 2.0;
+                
+                const newBall = {
+                    id: Math.random(),
+                    x: ball.x + Math.cos(angle) * separationDistance,
+                    y: ball.y + Math.sin(angle) * separationDistance,
+                    size: newSize,
+                    mass: newMass,
+                    color: ball.color,
+                    name: ball.name,
+                    vx: Math.cos(angle) * 20,
+                    vy: Math.sin(angle) * 20,
+                    splitTime: currentTime,
+                    canMerge: false
+                };
+                
+                ball.x = ball.x - Math.cos(angle) * separationDistance;
+                ball.y = ball.y - Math.sin(angle) * separationDistance;
+                ball.mass = newMass;
+                ball.size = newSize;
+                ball.vx = -Math.cos(angle) * 15;
+                ball.vy = -Math.sin(angle) * 15;
+                ball.splitTime = currentTime;
+                ball.canMerge = false;
+                
+                playerBalls.push(newBall);
+            });
+            
+            playerStats.lastSplitTime = currentTime;
+        }
+        
+        // Update AI players
+        function updateAIPlayers() {
+            aiPlayers.forEach(ai => {
+                ai.changeTargetTimer++;
+                if (ai.changeTargetTimer > 200 + Math.random() * 300) {
+                    ai.targetX = Math.random() * WORLD_WIDTH;
+                    ai.targetY = Math.random() * WORLD_HEIGHT;
+                    ai.changeTargetTimer = 0;
+                }
+                
+                const dx = ai.targetX - ai.x;
+                const dy = ai.targetY - ai.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 5) {
+                    const speed = Math.max(0.5, 3 - (ai.size - 15) / 40);
+                    ai.vx += (dx / distance) * speed * 0.08;
+                    ai.vy += (dy / distance) * speed * 0.08;
+                }
+                
+                ai.vx *= 0.9;
+                ai.vy *= 0.9;
+                
+                ai.x += ai.vx;
+                ai.y += ai.vy;
+                
+                const radius = ai.size / 2;
+                ai.x = Math.max(radius, Math.min(WORLD_WIDTH - radius, ai.x));
+                ai.y = Math.max(radius, Math.min(WORLD_HEIGHT - radius, ai.y));
+                
+                ai.size = Math.sqrt(ai.mass);
+                ai.score = Math.floor(ai.mass / 4);
+            });
+        }
+        
+        // Check collisions
+        function checkCollisions() {
+            // Player balls vs Food
+            playerBalls.forEach(ball => {
+                for (let i = food.length - 1; i >= 0; i--) {
+                    const f = food[i];
+                    const dx = ball.x - f.x;
+                    const dy = ball.y - f.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < ball.size / 2 + f.size / 2) {
+                        ball.mass += 3;
+                        food.splice(i, 1);
+                        
+                        // Respawn food
+                        food.push({
+                            x: Math.random() * WORLD_WIDTH,
+                            y: Math.random() * WORLD_HEIGHT,
+                            size: 4 + Math.random() * 4,
+                            color: getRandomColor()
+                        });
+                        break;
+                    }
+                }
+            });
+            
+            // Player balls vs AI players
+            playerBalls.forEach(playerBall => {
+                for (let i = aiPlayers.length - 1; i >= 0; i--) {
+                    const ai = aiPlayers[i];
+                    const dx = playerBall.x - ai.x;
+                    const dy = playerBall.y - ai.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const collisionDistance = (playerBall.size + ai.size) / 2;
+                    
+                    if (distance < collisionDistance) {
+                        // Check if player can eat AI
+                        if (playerBall.mass > ai.mass * 1.1) {
+                            // Player eats AI
+                            playerBall.mass += ai.mass * 0.8; // Gain 80% of AI's mass
+                            
+                            // Respawn AI player
+                            aiPlayers.splice(i, 1);
+                            aiPlayers.push({
+                                x: Math.random() * WORLD_WIDTH,
+                                y: Math.random() * WORLD_HEIGHT,
+                                size: 15 + Math.random() * 30,
+                                mass: 300 + Math.random() * 800,
+                                color: getRandomColor(),
+                                name: aiNames[Math.floor(Math.random() * aiNames.length)],
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: (Math.random() - 0.5) * 2,
+                                targetX: Math.random() * WORLD_WIDTH,
+                                targetY: Math.random() * WORLD_HEIGHT,
+                                changeTargetTimer: 0,
+                                score: Math.floor(300 + Math.random() * 800)
+                            });
+                            
+                            // Show eat notification
+                            const notification = document.getElementById('growthNotification');
+                            notification.style.display = 'block';
+                            notification.style.background = 'rgba(255, 0, 0, 0.9)';
+                            notification.innerHTML = `🍽️ ATE ${ai.name}! 🍽️<br><small>+${Math.floor(ai.mass * 0.8)} Mass!</small>`;
+                            setTimeout(() => {
+                                notification.style.display = 'none';
+                                notification.style.background = 'rgba(255, 215, 0, 0.9)';
+                            }, 2000);
+                        }
+                        // Check if AI can eat player
+                        else if (ai.mass > playerBall.mass * 1.1) {
+                            // AI eats player ball - remove this ball
+                            playerBalls.splice(playerBalls.indexOf(playerBall), 1);
+                            
+                            // Check if all player balls are gone
+                            if (playerBalls.length === 0) {
+                                // Game over only when all balls are lost
+                                gameRunning = false;
+                                cancelAnimationFrame(animationId);
+                                
+                                // Show game over screen
+                                const notification = document.getElementById('growthNotification');
+                                notification.style.display = 'block';
+                                notification.style.background = 'rgba(255, 0, 0, 0.95)';
+                                notification.innerHTML = `💀 GAME OVER! 💀<br><small>All balls eaten by ${ai.name}</small><br><small>Press R to restart</small>`;
+                                setTimeout(() => {
+                                    notification.style.display = 'none';
+                                }, 5000);
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Player balls vs other player balls (after splitting)
+            for (let i = 0; i < playerBalls.length; i++) {
+                for (let j = i + 1; j < playerBalls.length; j++) {
+                    const ball1 = playerBalls[i];
+                    const ball2 = playerBalls[j];
+                    const dx = ball1.x - ball2.x;
+                    const dy = ball1.y - ball2.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const collisionDistance = (ball1.size + ball2.size) / 2;
+                    
+                    if (distance < collisionDistance) {
+                        // Check if balls can merge (same player, both can merge)
+                        if (ball1.name === ball2.name && ball1.canMerge && ball2.canMerge) {
+                            // Merge balls
+                            const totalMass = ball1.mass + ball2.mass;
+                            ball1.mass = totalMass;
+                            ball1.size = Math.sqrt(totalMass);
+                            ball1.x = (ball1.x + ball2.x) / 2;
+                            ball1.y = (ball1.y + ball2.y) / 2;
+                            
+                            // Remove second ball
+                            playerBalls.splice(j, 1);
+                        }
+                        // Prevent overlap
+                        else {
+                            const overlap = collisionDistance - distance;
+                            const separationX = (dx / distance) * overlap * 0.5;
+                            const separationY = (dy / distance) * overlap * 0.5;
+                            
+                            ball1.x += separationX;
+                            ball1.y += separationY;
+                            ball2.x -= separationX;
+                            ball2.y -= separationY;
+                        }
+                    }
+                }
+            }
+            
+            // AI players vs other AI players
+            for (let i = 0; i < aiPlayers.length; i++) {
+                for (let j = i + 1; j < aiPlayers.length; j++) {
+                    const ai1 = aiPlayers[i];
+                    const ai2 = aiPlayers[j];
+                    const dx = ai1.x - ai2.x;
+                    const dy = ai1.y - ai2.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const collisionDistance = (ai1.size + ai2.size) / 2;
+                    
+                    if (distance < collisionDistance) {
+                        // Check if one AI can eat the other
+                        if (ai1.mass > ai2.mass * 1.1) {
+                            // AI1 eats AI2
+                            ai1.mass += ai2.mass * 0.8;
+                            ai1.score = Math.floor(ai1.mass / 4);
+                            aiPlayers.splice(j, 1);
+                            
+                            // Respawn eaten AI
+                            aiPlayers.push({
+                                x: Math.random() * WORLD_WIDTH,
+                                y: Math.random() * WORLD_HEIGHT,
+                                size: 15 + Math.random() * 30,
+                                mass: 300 + Math.random() * 800,
+                                color: getRandomColor(),
+                                name: aiNames[Math.floor(Math.random() * aiNames.length)],
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: (Math.random() - 0.5) * 2,
+                                targetX: Math.random() * WORLD_WIDTH,
+                                targetY: Math.random() * WORLD_HEIGHT,
+                                changeTargetTimer: 0,
+                                score: Math.floor(300 + Math.random() * 800)
+                            });
+                        } else if (ai2.mass > ai1.mass * 1.1) {
+                            // AI2 eats AI1
+                            ai2.mass += ai1.mass * 0.8;
+                            ai2.score = Math.floor(ai2.mass / 4);
+                            aiPlayers.splice(i, 1);
+                            
+                            // Respawn eaten AI
+                            aiPlayers.push({
+                                x: Math.random() * WORLD_WIDTH,
+                                y: Math.random() * WORLD_HEIGHT,
+                                size: 15 + Math.random() * 30,
+                                mass: 300 + Math.random() * 800,
+                                color: getRandomColor(),
+                                name: aiNames[Math.floor(Math.random() * aiNames.length)],
+                                vx: (Math.random() - 0.5) * 2,
+                                vy: (Math.random() - 0.5) * 2,
+                                targetX: Math.random() * WORLD_WIDTH,
+                                targetY: Math.random() * WORLD_HEIGHT,
+                                changeTargetTimer: 0,
+                                score: Math.floor(300 + Math.random() * 800)
+                            });
+                        } else {
+                            // Prevent overlap
+                            const overlap = collisionDistance - distance;
+                            const separationX = (dx / distance) * overlap * 0.5;
+                            const separationY = (dy / distance) * overlap * 0.5;
+                            
+                            ai1.x += separationX;
+                            ai1.y += separationY;
+                            ai2.x -= separationX;
+                            ai2.y -= separationY;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Render functions
+        function renderBackground() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            const startX = Math.floor(camera.x / gridSize) * gridSize;
+            const startY = Math.floor(camera.y / gridSize) * gridSize;
+            
+            for (let x = startX; x < camera.x + canvas.width / camera.zoom; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo((x - camera.x) * camera.zoom, 0);
+                ctx.lineTo((x - camera.x) * camera.zoom, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = startY; y < camera.y + canvas.height / camera.zoom; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, (y - camera.y) * camera.zoom);
+                ctx.lineTo(canvas.width, (y - camera.y) * camera.zoom);
+                ctx.stroke();
+            }
+        }
+        
+        function renderFood() {
+            food.forEach(f => {
+                const x = (f.x - camera.x) * camera.zoom;
+                const y = (f.y - camera.y) * camera.zoom;
+                
+                if (x > -20 && x < canvas.width + 20 && y > -20 && y < canvas.height + 20) {
+                    ctx.fillStyle = f.color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, f.size * camera.zoom, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        function renderPlayerBall(ball) {
+            const x = (ball.x - camera.x) * camera.zoom;
+            const y = (ball.y - camera.y) * camera.zoom;
+            const radius = ball.size * camera.zoom / 2;
+            const currentTime = Date.now();
+            const timeSinceSplit = currentTime - ball.splitTime;
+            const justSplit = timeSinceSplit < 1000;
+            
+            const isVIP = ball.name && (ball.name === 'fwang' || ball.name === 'Tchiang');
+            const isFermi = ball.name && ball.name === 'fwang';
+            
+            // Body
+            if (isFermi && fermiImage && fermiImage.complete) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.clip();
+                
+                const imageSize = radius * 2;
+                ctx.drawImage(fermiImage, x - radius, y - radius, imageSize, imageSize);
+                ctx.restore();
+                
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                } else {
+                ctx.fillStyle = ball.color;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Border
+            ctx.strokeStyle = isVIP ? '#FFD700' : '#fff';
+            ctx.lineWidth = isVIP ? 4 : 3;
+            ctx.stroke();
+            
+            // VIP glow effect
+            if (isVIP) {
+                const auraIntensity = 0.6 + 0.4 * Math.sin(currentTime * 0.005);
+                ctx.strokeStyle = `rgba(255, 215, 0, ${auraIntensity * 0.8})`;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Split effect
+            if (justSplit) {
+                const glowIntensity = 1 - (timeSinceSplit / 1000);
+                ctx.strokeStyle = `rgba(0, 255, 255, ${glowIntensity * 0.7})`;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Name
+            if (playerBalls.length === 1 || ball === playerBalls.reduce((largest, b) => b.mass > largest.mass ? b : largest)) {
+                ctx.fillStyle = isVIP ? '#FFD700' : '#fff';
+                ctx.font = `${Math.max(12, radius * 0.3)}px Arial`;
+                ctx.textAlign = 'center';
+                
+                let displayName = isVIP ? `👑 ${ball.name} 👑` : ball.name;
+                ctx.fillText(displayName, x, y + radius + 20);
+            }
+        }
+        
+        function renderPlayer(p) {
+            const x = (p.x - camera.x) * camera.zoom;
+            const y = (p.y - camera.y) * camera.zoom;
+            const radius = p.size * camera.zoom / 2;
+            
+            // Body
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Border
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Name
+            ctx.fillStyle = '#fff';
+            ctx.font = `${Math.max(12, radius * 0.3)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(p.name, x, y + radius + 20);
+        }
+        
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            renderBackground();
+            renderFood();
+            
+            // Render all entities by size (smallest first)
+            const allEntities = [...playerBalls, ...aiPlayers].sort((a, b) => a.size - b.size);
+            allEntities.forEach(entity => {
+                if (playerBalls.includes(entity)) {
+                    renderPlayerBall(entity);
+                } else {
+                    renderPlayer(entity);
+                }
+            });
+            
+            ctx.restore();
+            
+            // Update HUD
+            const totalMass = playerBalls.reduce((sum, ball) => sum + ball.mass, 0);
+            document.getElementById('score').textContent = playerStats.score;
+            document.getElementById('mass').textContent = Math.floor(totalMass);
+            document.getElementById('ballCount').textContent = playerBalls.length;
+            
+            // Update leaderboard
+            const playerForLeaderboard = {
+                name: playerBalls[0]?.name || 'Player',
+                score: playerStats.score
+            };
+            const leaderboard = [playerForLeaderboard, ...aiPlayers].sort((a, b) => b.score - a.score);
+            const leaderboardHtml = leaderboard.slice(0, 5).map((p, i) => 
+                `<div>${i + 1}. ${p.name}: ${p.score}</div>`
+            ).join('');
+            document.getElementById('leaderboardList').innerHTML = leaderboardHtml;
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            updatePlayer();
+            updateAIPlayers();
+            updateCamera();
+            checkCollisions();
+            render();
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        // START GAME FUNCTION - This is the key function that wasn't working
+        function startGame() {
+            console.log('🚀 Starting game...');
+            
+            const nameInput = document.getElementById('playerName');
+            let playerName = nameInput.value.trim();
+            
+            if (!playerName) {
+                playerName = 'Player';
+            }
+            
+            console.log('👤 Player name:', playerName);
+            playerBalls[0].name = playerName;
+            updatePlayerNameForChat(playerName);
+            
+            // Easter Eggs! (silent activation)
+            if (playerName === 'fwang' || playerName === 'Tchiang') {
+                console.log('🥚 Easter egg activated for:', playerName);
+                playerBalls[0].mass = 1000;
+                playerBalls[0].size = Math.sqrt(1000);
+                playerBalls[0].color = '#FFD700';
+                playerStats.score = Math.floor(1000 / 4);
+            }
+            
+            // Hide start screen
+            console.log('🎭 Hiding start screen...');
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            // Initialize game
+            gameRunning = true;
+            console.log('✅ Game running:', gameRunning);
+            
+            createFood();
+            createAIPlayers();
+            
+            console.log('🎮 Starting game loop...');
+            gameLoop();
+        }
+        
+        // Event listeners
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameRunning) {
+                e.preventDefault();
+                splitPlayer();
+            } else if (e.code === 'KeyR') {
+                location.reload();
+            }
+        });
+        
+        document.getElementById('playerName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startGame();
+            }
+        });
+        
+        // Add button event listener
+        document.getElementById('startButton').addEventListener('click', startGame);
+        
+        // Chatroom functionality
+        let playerName = 'Player';
+        let chatMessages = [];
+        const maxChatMessages = 50;
+        
+        function addChatMessage(message, type = 'system') {
+            const chatContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${type}`;
+            
+            if (type === 'player') {
+                messageDiv.textContent = `${playerName}: ${message}`;
+            } else if (type === 'ai') {
+                messageDiv.textContent = `AI: ${message}`;
+            } else {
+                messageDiv.textContent = message;
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatMessages.push({ message, type, timestamp: Date.now() });
+            
+            // Keep only last 50 messages
+            if (chatMessages.length > maxChatMessages) {
+                chatMessages.shift();
+                chatContainer.removeChild(chatContainer.firstChild);
+            }
+            
+            // Auto-scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (message && gameRunning) {
+                addChatMessage(message, 'player');
+                input.value = '';
+                
+                // Simulate AI responses occasionally
+                if (Math.random() < 0.3) {
+                    setTimeout(() => {
+                        const aiResponses = [
+                            'Nice move!',
+                            'Good game!',
+                            'I\'m getting bigger!',
+                            'Watch out!',
+                            'This is fun!',
+                            'Split strategy!',
+                            'Almost got you!',
+                            'Great game!'
+                        ];
+                        const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+                        addChatMessage(randomResponse, 'ai');
+                    }, 1000 + Math.random() * 2000);
+                }
+            }
+        }
+        
+        function toggleChat() {
+            const chatroom = document.querySelector('.chatroom');
+            const toggleBtn = document.getElementById('toggleChat');
+            
+            if (chatroom.classList.contains('collapsed')) {
+                chatroom.classList.remove('collapsed');
+                toggleBtn.textContent = '−';
+            } else {
+                chatroom.classList.add('collapsed');
+                toggleBtn.textContent = '+';
+            }
+        }
+        
+        // Chat event listeners
+        document.getElementById('sendMessage').addEventListener('click', sendChatMessage);
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+        document.getElementById('toggleChat').addEventListener('click', toggleChat);
+        
+        // Update player name for chat
+        function updatePlayerNameForChat(name) {
+            playerName = name;
+        }
+        
+        console.log('✅ Game script loaded successfully!');
+    </script>
 </body>
-</html> 
+</html>
