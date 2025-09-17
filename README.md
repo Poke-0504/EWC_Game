@@ -1,4 +1,4 @@
-# 🎮 Cursor.io
+# 🎮 EWC Event Game
 
 A modern, secure real-time multiplayer game similar to Agar.io, built with Node.js, Socket.io, and HTML5 Canvas.
 
